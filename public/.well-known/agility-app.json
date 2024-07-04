@@ -1,0 +1,26 @@
+{
+	"name": "Exernal Linked Content",
+	"documentationLink": "",
+	"description": "Link to content from another Agility CMS instance.",
+	"version": "1.0.0",
+	"__sdkVersion": "2.0.0",
+	"configValues": [],
+	"connections": [],
+	"capabilities": {
+		"fields": [
+			{
+				"name": "external-content",
+				"label": "External Content",
+				"description": "Link to content from another Agility CMS instance."
+			}
+		],
+		"modals": [
+			{
+				"name": "agility-item-selector",
+				"label": "Agility Item Selection",
+				"description": "Select an item from another Agility CMS instance."
+			}
+		],
+		"installScreen": false
+	}
+}
