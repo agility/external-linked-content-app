@@ -27,7 +27,7 @@ export default function useItemListing({ token, guid, locale, container, skip, t
 
 	const referenceName = container.referenceName
 
-	const fields = ["contentItemID", "itemContainerID", "stateID", "state"].concat(container.columns.filter(f => f.fieldName).map(f => f.fieldName || "") || [])
+	const fields = ["contentItemID", "itemContainerID", "stateID"].concat(container.columns.filter(f => f.fieldName).map(f => f.fieldName || "") || [])
 	const sortField = container.defaultSortColumn
 	const sortDirection = container.defaultSortDirection
 

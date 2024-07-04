@@ -12,6 +12,11 @@
 				"name": "external-content",
 				"label": "External Content",
 				"description": "Link to content from another Agility CMS instance."
+			},
+			{
+				"name": "linked-event",
+				"label": "Linked Event",
+				"description": "Link to an event from the Global Deals & Events instance."
 			}
 		],
 		"modals": [

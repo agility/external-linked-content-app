@@ -6,5 +6,6 @@ export const defaultColumns = [
 	"username",
 	"releasedate",
 	"pulldate",
+	"stateid",
 	"state"
 ]

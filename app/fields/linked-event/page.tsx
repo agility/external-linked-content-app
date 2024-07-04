@@ -3,15 +3,16 @@
 
 import EmptySection from "@/components/EmptySection"
 import useItemDetails from "@/hooks/useItemDetails"
+import useModel from "@/hooks/useModel"
+import {defaultColumns} from "@/lib/DefaultColumns"
 
-import {LinkedItem} from "@/types/LinkedItem"
 import {SelectedValue} from "@/types/SelectedValue"
 import {useAgilityAppSDK, contentItemMethods, openModal, useResizeHeight, getManagementAPIToken} from "@agility/app-sdk"
 import {Button, ButtonDropdown, DynamicIcon} from "@agility/plenum-ui"
 import {IconEdit} from "@tabler/icons-react"
-import {useCallback, useEffect, useState} from "react"
+import {useCallback, useEffect, useMemo, useState} from "react"
 
-export default function LinkedEventField() {
+export default function LinkedEvent() {
 	const {initializing, field, fieldValue} = useAgilityAppSDK()
 
 	const [token, setToken] = useState<string | null>(null)
@@ -20,12 +21,24 @@ export default function LinkedEventField() {
 
 	const [selectedItem, onsetSelectedItem] = useState<SelectedValue | null | undefined>(null)
 
+	/**
+	 * Fetch the full item details of the selected item (if any)
+	 */
 	const {itemDetail, isLoading, error} = useItemDetails({
 		token,
 		contentID: selectedItem?.item?.itemContainerID || 0,
 		guid: selectedItem?.guid || "",
 		locale: selectedItem?.locale || "",
 	})
+
+	/**
+	 * Fetch the model of the selected item (if any)
+	 */
+	const {
+		data: model,
+		isLoading: loadingModel,
+		error: modelError,
+	} = useModel({token, guid: selectedItem?.guid, referenceName: itemDetail?.properties.definitionName})
 
 	const setSelectedItem = useCallback(
 		(item: SelectedValue | null | undefined) => {
@@ -36,17 +49,15 @@ export default function LinkedEventField() {
 		[field?.name]
 	)
 
-	useEffect(() => {
-		console.log("selectedItem", selectedItem)
-		console.log("item Detail", itemDetail)
-	}, [selectedItem, fieldValue, itemDetail])
-
+	/**
+	 * Show the modal to choose the selected item
+	 */
 	const selectContentItem = useCallback(() => {
 		const props = {
 			token: token,
-			guid: selectedItem?.guid || "",
-			locale: selectedItem?.locale || "",
-			referenceName: selectedItem?.referenceName || "",
+			guid: selectedItem?.guid || "7d3a5b28-u",
+			locale: selectedItem?.locale || "en-us",
+			referenceName: selectedItem?.referenceName || "Events",
 		}
 
 		openModal<SelectedValue | null>({
@@ -74,7 +85,7 @@ export default function LinkedEventField() {
 	}, [initializing])
 
 	useEffect(() => {
-		//initialize the field value of the product
+		//initialize the field value of the selected item (parse out the JSON)
 		if (!fieldValue) {
 			onsetSelectedItem(null)
 			return
@@ -95,10 +106,45 @@ export default function LinkedEventField() {
 		onsetSelectedItem(savedValue)
 	}, [fieldValue])
 
-	useEffect(() => {
-		//load the product details if we have a product
-		if (!selectedItem) return
-	}, [selectedItem])
+	/**
+	 * If this item has an image attachment, pull that out to show on the item detail.
+	 */
+	const imageUrl = useMemo(() => {
+		if (!itemDetail || !model) return null
+
+		const imageField = model.fields.find((f) => f.type === "ImageAttachment")
+		const fieldNames = Object.keys(itemDetail?.fields || {})
+		const fieldName = fieldNames.find((f) => f.toLowerCase() === imageField?.name?.toLowerCase())
+		if (!imageField || !fieldName) return null
+		const img = itemDetail?.fields[fieldName]
+
+		if (img && img.url) {
+			if (img.url.includes(".svg")) {
+				return img.url
+			}
+			return `${img.url}?w=250&format=auto`
+		}
+	}, [model, itemDetail])
+
+	/**
+	 * Show the fields of the selected item, pull the field labels from the actual model if possible.
+	 */
+	const displayFields = useMemo(() => {
+		const fieldNames = Object.keys(selectedItem?.item || {}).filter((fieldName) => {
+			return !defaultColumns.includes(fieldName.toLowerCase())
+		})
+		return fieldNames.map((fieldName) => {
+			const field = model?.fields.find((f) => f.name?.toLowerCase() === fieldName.toLowerCase())
+
+			const label = field?.label || fieldName
+			let value = selectedItem?.item[fieldName] || ""
+
+			return {
+				label,
+				value,
+			}
+		})
+	}, [model, selectedItem])
 
 	if (initializing) return null
 
@@ -107,13 +153,14 @@ export default function LinkedEventField() {
 			<div className="p-[1px]">
 				{selectedItem && (
 					<div className="flex border border-gray-200 rounded gap-2">
-						<div className="rounded-l shrink-0">
-							{/* <img src={selectedItem.image?.detailUrl} className="h-60 rounded-l" alt={selectedItem.name} /> */}
+						<div className="p-2 flex items-center bg-gray-200">
+							{imageUrl && <img src={imageUrl} className="" alt="" />}
 						</div>
 						<div className="flex-1 flex-col p-2 ">
 							<div className="flex gap-2 justify-between items-center">
 								<div className="flex gap-2 items-center">
-									<div className="text-base font-medium">Selected Item</div>
+									<div className="text-base font-medium">{model?.displayName || "Selected Item"}</div>
+									<div>ID: {selectedItem.item.itemContainerID}</div>
 									<div className="text-sm text-gray-500">
 										{isLoading ? (
 											<DynamicIcon icon="FaSpinner" className="animate-spin" />
@@ -154,29 +201,16 @@ export default function LinkedEventField() {
 								</div>
 							</div>
 
-							<div className="flex py-2 gap-2 mt-5 border-b border-b-gray-200 ">
-								<div className="text-gray-500">Content ID</div>
-								<div className="">{selectedItem.item.itemContainerID}</div>
-							</div>
+							{/* show the field values
+							 - if you KNOW what kind of item you want to pick, you can hard code the fields here
+							 */}
 
-							{isLoading && <div>Loading...</div>}
-							{error && <div>Error loading item detail</div>}
-
-							{itemDetail && (
-								<>
-									<div className=" flex gap-2 py-2 border-b border-b-gray-200">
-										<div className="text-gray-500">Stock</div>
-										<div className="flex gap-1 items-center">VersionID: {itemDetail.properties.versionID}</div>
-									</div>
-
-									<div className=" flex justify-between py-2 border-b border-b-gray-200 ">
-										<div className="text-gray-500">Price</div>
-										<div className="">
-											<textarea value={JSON.stringify(itemDetail)}></textarea>
-										</div>
-									</div>
-								</>
-							)}
+							{displayFields.map((field) => (
+								<div key={field.label} className=" flex gap-2 py-2 border-b border-b-gray-200">
+									<div className="text-gray-500 w-40 truncate">{field.label}</div>
+									<div className="flex gap-1 items-center">{field.value}</div>
+								</div>
+							))}
 						</div>
 					</div>
 				)}
