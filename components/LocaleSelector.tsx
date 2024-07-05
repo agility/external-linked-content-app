@@ -13,7 +13,7 @@ export const LocaleSelector = ({token, guid, onSelect}: LocaleSelectorProps) => 
 	const {data: locales, isLoading} = useLocales({token, guid})
 
 	useEffect(() => {
-		if (locales.length === 1) {
+		if (locales && locales.length === 1) {
 			onSelect(locales[0].localeCode)
 		}
 	}, [locales, onSelect])
