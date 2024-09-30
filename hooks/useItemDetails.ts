@@ -31,6 +31,8 @@ export default function useItemDetails({ token, guid, locale, contentID }: Props
 		const api = new agilitySDK.ApiClient(options)
 		return api.contentMethods.getContentItem(contentID, guid, locale)
 
+	}, {
+		refreshInterval: 10000
 	})
 
 	return {
